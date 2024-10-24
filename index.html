@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Immersive Room</title>
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+</head>
+<body>
+  <a-scene>
+    <!-- Asset management system -->
+    <a-assets>
+      <video id="floorVideo" src="https://webxrbucketomoi.s3.eu-north-1.amazonaws.com/hf.mp4" loop="true" crossorigin="anonymous"></video>
+      <video id="wallVideo1" src="https://webxrbucketomoi.s3.eu-north-1.amazonaws.com/h1.mp4" loop="true" crossorigin="anonymous"></video>
+      <video id="wallVideo2" src="https://webxrbucketomoi.s3.eu-north-1.amazonaws.com/h2.mp4" loop="true" crossorigin="anonymous"></video>
+      <video id="wallVideo3" src="https://webxrbucketomoi.s3.eu-north-1.amazonaws.com/h4.mp4" loop="true" crossorigin="anonymous"></video>
+      <video id="wallVideo4" src="https://webxrbucketomoi.s3.eu-north-1.amazonaws.com/h3.mp4" loop="true" crossorigin="anonymous"></video>
+      <audio id="underwaterSound" src="https://webxrbucketomoi.s3.eu-north-1.amazonaws.com/FEfinal.mp3" loop="true" crossorigin="anonymous"></audio>
+    </a-assets>
+
+    <!-- Floor -->
+    <a-video src="#floorVideo" width="10" height="10" position="0 0 0" rotation="-90 0 0"></a-video>
+
+    <!-- Walls -->
+    <a-video src="#wallVideo1" width="9" height="6" position="0 3 -4.5" rotation="0 0 0"></a-video>
+    <a-video src="#wallVideo2" width="9" height="6" position="4.5 3 0" rotation="0 -90 0"></a-video>
+    <a-video src="#wallVideo3" width="9" height="6" position="-4.5 3 0" rotation="0 90 0"></a-video>
+    <a-video src="#wallVideo4" width="9" height="6" position="0 3 4.5" rotation="0 180 0"></a-video>
+
+    <!-- User interaction to start videos -->
+    <a-entity position="0 1.6 -3">
+      <a-plane id="playButton" color="#4CC3D9" width="2" height="1" text="value: Start Videos; align: center" material="shader: flat" class="clickable"></a-plane>
+    </a-entity>
+
+    <!-- Laser controls for Oculus Quest interaction -->
+    <a-entity laser-controls="hand: right" id="rightHand" raycaster="objects: .clickable"></a-entity>
+
+    <!-- Camera and sound -->
+    <a-entity camera look-controls>
+      <a-sound src="#underwaterSound" autoplay="true" loop="true"></a-sound>
+    </a-entity>
+  </a-scene>
+
+  <script>
+    AFRAME.registerComponent('bubble-generator', {
+      init: function () {
+        const el = this.el;
+
+        el.addEventListener('triggerdown', function () {
+          createBubble(el);
+        });
+
+        function createBubble(el) {
+          const bubble = document.createElement('a-sphere');
+          bubble.setAttribute('radius', 0.05);
+          bubble.setAttribute('color', '#ADD8E6'); // Light blue color
+          bubble.setAttribute('position', el.getAttribute('position'));
+          bubble.setAttribute('dynamic-body', '');
+
+          // Randomize initial position and velocity
+          const randomOffset = (Math.random() - 0.5) * 0.1;
+          const randomVelocity = (Math.random() - 0.5) * 0.2;
+
+          bubble.setAttribute('position', {
+            x: el.object3D.position.x + randomOffset,
+            y: el.object3D.position.y,
+            z: el.object3D.position.z + randomOffset
+          });
+
+          // Curly animation
+          bubble.setAttribute('animation__float', {
+            property: 'position',
+            to: `${el.object3D.position.x + randomVelocity} ${el.object3D.position.y + 2 + randomVelocity} ${el.object3D.position.z + randomVelocity}`,
+            dur: 3000,
+            easing: 'easeInOutSine'
+          });
+
+          // Pop animation
+          bubble.setAttribute('animation__pop', {
+            property: 'scale',
+            to: '0 0 0',
+            dur: 500,
+            startEvents: 'pop'
+          });
+
+          el.sceneEl.appendChild(bubble);
+
+          setTimeout(() => {
+            bubble.emit('pop');
+            setTimeout(() => {
+              bubble.parentNode.removeChild(bubble);
+            }, 500);
+          }, 2500);
+        }
+      }
+    });
+
+    document.querySelector('#playButton').addEventListener('click', function () {
+      const videos = ['floorVideo', 'wallVideo1', 'wallVideo2', 'wallVideo3', 'wallVideo4'];
+      videos.forEach(videoId => {
+        const video = document.getElementById(videoId);
+        video.play();
+      });
+      this.setAttribute('visible', 'false');
+
+      // Enable bubble generation on trigger press
+      const rightHand = document.getElementById('rightHand');
+      rightHand.removeAttribute('laser-controls');
+      rightHand.setAttribute('bubble-generator', '');
+    });
+
+    // Adding interaction with raycaster
+    document.querySelector('a-scene').addEventListener('loaded', () => {
+      const sceneEl = document.querySelector('a-scene');
+      const playButton = document.querySelector('#playButton');
+
+      playButton.addEventListener('mouseenter', function () {
+        this.setAttribute('color', '#24CAFF');
+      });
+
+      playButton.addEventListener('mouseleave', function () {
+        this.setAttribute('color', '#4CC3D9');
+      });
+
+      sceneEl.querySelectorAll('.clickable').forEach(function (el) {
+        el.addEventListener('click', function () {
+          el.emit('click');
+        });
+      });
+    });
+  </script>
+</body>
+</html>
